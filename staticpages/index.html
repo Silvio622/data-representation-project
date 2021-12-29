@@ -1,0 +1,282 @@
+<!DOCTYPE>
+<html lang="en">
+<head>
+    <!--For CSS Style-->
+    <style>
+        #bgcolor {background-color:lightblue;}
+        h1,h2 {color:blue;}
+        th {padding:10px; border: 3px solid black; font-size:25px; color:blue; background-color: white;}
+        td{border: 3px solid black; font-size:20px;background-color: white;text-align: right;}
+        .Button{text-align: center;height: 30px ;}
+
+    </style>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <meta charset="UTF-8">    
+    <title>Products from Vendor</title>
+   
+</head>
+<body id="bgcolor">
+    
+<!--page header-->
+<center><h1>Products</h1></center>    
+</br>
+    <!--Create a Edit form-->
+    <div id = "display_edit" style="display: none;">
+        
+        <center><h2>Display - Edit </h2></center> 
+
+        <!--Insert a table for the Edit form-->
+        <center>
+            <table class="table" id = "createEditForm">
+                <tr>
+                    <td>Product Id</td>
+                    <td><input type = "text" name = "Product Id" id = "idInput"></td>
+                </tr>
+                <tr>
+                    <td>Product Name</td>
+                    <td><input type = "text" name = "Product Name"></td>
+                </tr>
+                <tr>
+                    <td>Manufacturer</td>
+                    <td><input type = "text" name = "Manufacturer"></td>
+                </tr>
+                <tr>
+                    <td>Price</td>
+                    <td><input type = "currency" name = "Price"></td>
+                </tr>
+                <tr>
+                    <td>Vendor Id</td>
+                    <td><input type = "text" name = "Vendor Id"></td>
+                </tr>           
+            </table>
+            <button class="Button" id = "create-button" onclick="doCreate()">Create</button>
+            <button class="Button" id = "update-button" onclick="doUpdate()">Update</button>
+            
+        </center>    
+    </div>
+</br>
+</br>
+    <!--Show the Product table on the website-->
+    <div id = "display">
+        
+        <center>
+            <h2>Products</h2>
+            <button onclick = "showCreate()">Create</button>
+
+            <!--Insert a table-->
+            <table class="table" id="ProductTable">
+                <tr>
+                    <th>Product Id</th><th>Product Name</th><th>Manufacturer</th><th>Price</th><th>Vendor Id</th>
+                </tr>
+            </table>
+            </br>            
+        </center>
+    </div>
+
+
+</body>
+
+<!--Java Script-->
+<script>
+    function showCreate(){
+        document.getElementById('display').style.display = "none"
+        document.getElementById('update-button').style.display = "none"
+        document.getElementById('create-button').style.display = "block"
+        document.getElementById('display_edit').style.display = "block"        
+    }
+
+    function showUpdate(thisElem){
+        var rowElement = thisElem.parentNode.parentNode
+        product = readProductFromRow(rowElement)
+        populateForm(product)        
+
+        document.getElementById('display').style.display = "none"
+        document.getElementById('update-button').style.display = "block"
+        document.getElementById('create-button').style.display = "none"
+        document.getElementById('display_edit').style.display = "block"
+    }
+
+    function readProductFromRow(rowElement){
+        product = {} 
+        product.productid = rowElement.getAttribute("id");
+        product.productname = rowElement.cells[1].firstChild.textContent
+        product.manufacturer = rowElement.cells[2].firstChild.textContent
+        product.price = rowElement.cells[3].firstChild.textContent
+        product.vendorid = rowElement.cells[4].firstChild.textContent
+
+        return product
+    }
+
+
+    function populateForm(product){
+        var form = document.getElementById('createEditForm')
+
+        form.querySelector('input[name = "Product Id"]').value = product.productid
+        form.querySelector('input[name = "Product Id"]').disabled = true
+
+        form.querySelector('input[name = "Product Name"]').value = product.productname
+        form.querySelector('input[name = "Manufacturer"]').value = product.manufacturer
+        form.querySelector('input[name = "Price"]').value = product.price
+        form.querySelector('input[name = "Vendor Id"]').value = product.vendorid 
+    }
+
+
+    function clearForm(){
+        var form = document.getElementById('createEditForm')
+        // set the values below to '' nothing
+        form.querySelector('input[name = "Product Id"]').value = ''                
+        form.querySelector('input[name = "Product Id"]').disabled = false
+
+        form.querySelector('input[name = "Product Name"]').value = ''
+        form.querySelector('input[name = "Manufacturer"]').value = ''
+        form.querySelector('input[name = "Price"]').value = ''
+        form.querySelector('input[name = "Vendor Id"]').value = '' 
+    }
+
+
+    function doCreate(){
+        product = getProductFromForm()
+        $.ajax({
+            url:"http://127.0.0.1:5000/products",// if you host somewhere else the url is changing
+            data:JSON.stringify(product), 
+            method:"POST",
+            dataType:"JSON",
+            contentType: "application/json; charset=utf-8",
+            success:function(result){
+                console.log(result) 
+                addProductTableRows(product)// add only to the table if is succesful
+                showDisplay()
+                clearForm()   
+            },
+            error:function(xhr,status,error){
+                console.log("error "+ error +" code:"+ status)
+            }
+        })
+        showDisplay()
+    }
+
+
+    function doUpdate(){
+        product = getProductFromForm()
+        updateServer(product)
+        updateTableRow(product)
+        showDisplay()
+    }
+
+
+    function updateServer(product){
+        $.ajax({
+            url:"http://127.0.0.1:5000/products/" + product.productid,// if you host somewhere else the url is changing
+            data:JSON.stringify(product), 
+            method:"PUT",
+            dataType:"JSON",
+            contentType: "application/json; charset=utf-8",
+            success:function(result){
+                console.log(result) 
+                updateTableRow(product)
+                showDisplay()
+                clearForm()   
+            },
+            error:function(xhr,status,error){
+                conslole.log("error "+ error +" code:"+ status)
+            }
+        })
+    } 
+
+
+    function dodelete(thisElem){
+        var tableElement = document.getElementById('ProductTable')
+        var rowElement = thisElem.parentNode.parentNode;
+        var index = rowElement.rowIndex;
+        productid = rowElement.getAttribute("id");
+        // Delete Row
+        $.ajax({
+            url:"http://127.0.0.1:5000/products/" + productid,// use the url + the id (productid)
+            method:"DELETE",
+            dataType:"JSON",
+            success: function(result){
+                tableElement.deleteRow(index);
+            },
+            error:function(xhr,status,error){
+                        console.log(error)
+            }            
+        })            
+    }
+
+
+    function updateTableRow(product){
+        rowElement = document.getElementById(product.productid)
+        rowElement.cells[1].firstChild.textContent = product.productname
+        rowElement.cells[2].firstChild.textContent = product.manufacturer
+        rowElement.cells[3].firstChild.textContent = product.price
+        rowElement.cells[4].firstChild.textContent = product.vendorid
+    }
+
+
+    function getProductFromForm(){
+        var form = document.getElementById("createEditForm")
+
+        var product = {}
+        product.productid = form.querySelector('input[name = "Product Id"]').value
+        product.productname = form.querySelector('input[name = "Product Name"]').value
+        product.manufacturer = form.querySelector('input[name = "Manufacturer"]').value
+        product.price = form.querySelector('input[name = "Price"]').value
+        product.vendorid = form.querySelector('input[name = "Vendor Id"]').value
+        //console.log(product)// log temporary on console
+        return product
+    }
+
+    function showDisplay(){
+        document.getElementById('display').style.display = "block"
+        document.getElementById('display_edit').style.display = "none"
+    }
+
+    var lastrowid = 0
+    var lastrowidform = 0
+    function getProduct(){
+        // ajax getAll
+        $.ajax({
+            url:"http://127.0.0.1:5000/products",// if you host somewhere else the url is changing
+            method:"GET",
+            dataType:"JSON",
+            success: function(result){
+                console.log(result)
+                for (product of result){
+                    addProductTableRows(product)
+                    lastrowid = lastrowid + 1
+                    console.log('last id is'+ lastrowid)
+                }
+            },
+            error:function(xhr,status,error){
+                conslole.log("error "+ error +" code:"+ status)
+            }
+        })
+                    
+    }
+
+
+    function addProductTableRows(product){
+        var tableElement = document.getElementById("ProductTable")
+        var rowElement = tableElement.insertRow(-1) // insert the row at the end of the table
+        var cell1 = rowElement.insertCell(0);// first cell in the table row
+        rowElement.setAttribute('id', product.productid)// the id is set to the productid from the product in the product array
+        cell1.innerHTML = product.productid // first cell filled with productid from JSON      
+        var cell2 = rowElement.insertCell(1);// second cell in the table row 
+        cell2.innerHTML = product.productname // second cell filled with productname from JSON 
+        var cell3 = rowElement.insertCell(2);// third cell in the table row 
+        cell3.innerHTML = product.manufacturer // third cell filled with manufacturer from JSON 
+        var cell4 = rowElement.insertCell(3);// fourth cell in the table row 
+        cell4.innerHTML = product.price // fourth cell filled with price from JSON
+        var cell5 = rowElement.insertCell(4);// fifth cell in the table row
+        cell5.innerHTML = product.vendorid // fifth cell filled with vendorid from JSON
+        var cell6 = rowElement.insertCell(5);// sixth cell in the table row
+        cell6.innerHTML = '<button class="Button" onclick = "showUpdate(this)">Update</button>' // sixth cell filled with the Update Button
+        var cell7 = rowElement.insertCell(6);// seventh cell in the table row
+        cell7.innerHTML = '<button class="Button" onclick = "dodelete(this)">Delete</button>' // seventh cell filled with the Delete Button      
+    }
+
+    getProduct()
+    
+</script>
+</html>
